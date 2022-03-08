@@ -244,9 +244,9 @@ function getDataFromRows (row: string, type: string)
 
 function buildPage (cosmeticSetArray: SetData[])
 {
-	Deno.writeTextFileSync("./dump.json", JSON.stringify(cosmeticSetArray, null, "\t"));
-	// const index = formatHtml(cosmeticSetArray);
-	// Deno.writeTextFileSync("./index.html", index);
+	// Deno.writeTextFileSync("./dump.json", JSON.stringify(cosmeticSetArray, null, "\t"));
+	const index = formatHtml(cosmeticSetArray);
+	Deno.writeTextFileSync("./index.html", index);
 }
 
 const cosmeticSetUrl = "https://seaofthieves.fandom.com/wiki/Category:Cosmetic_Set";
