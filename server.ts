@@ -1,46 +1,9 @@
 
-async function handler ()
+
+function test ()
 {
-	const resp = await fetch("https://seaofthieves.fandom.com/wiki/Admiral_Set");
-
-	if (!resp || !resp.body) return;
-	const reader = resp.body.getReader();
-	// const value = reader.read();
-	// value.then(({done, value}) =>
-	// {
-	// 	if (done)
-	// 	{
-
-	// 		const body = new TextDecoder().decode(value);
-	// 		Deno.writeFileSync("./dump.html", value!);
-	// 		console.log("hi", body);
-	// 	}
-	// });
-	let test = true;
-	let intarray = new Uint8Array();
-
-	while (test)
-	{
-		await reader.read().then(({done, value}) =>
-		{
-
-			const body = new TextDecoder().decode(value);
-			Deno.writeFileSync("./dump.html", value!);
-			console.log("hi", body);
-			test = !done;
-
-		});
-	}
-	// const body = new TextDecoder().decode(value);
-	// Deno.writeFileSync("./dump.html", value!);
-	// console.log("hi", body);
-}
-handler();
-
-async function test ()
-{
-
-	const page = fetch("https://seaofthieves.fandom.com/wiki/Admiral_Set").then((response) =>
+	const arr: Uint8Array[] = [];
+	fetch("https://seaofthieves.fandom.com/wiki/Admiral_Set").then((response) =>
 	{
 		const reader = response?.body?.getReader();
 		const stream = new ReadableStream({
@@ -52,15 +15,20 @@ async function test ()
 					// "done" is a Boolean and value a "Uint8Array"
 					return reader?.read().then(({done, value}) =>
 					{
+						console.log(`reader done: ${done}`);
+						// console.log(`value: ${value}`);
 						// Is there no more data to read?
 						if (done)
 						{
 							// Tell the browser that we have finished sending data
 							controller.close();
+							writeFile(arr);
 							return;
 						}
 
 						// Get the data and send it to the browser via the controller
+						if (value)
+							arr.push(value);
 						controller.enqueue(value);
 						push();
 					});
@@ -73,8 +41,18 @@ async function test ()
 		return new Response(stream, {headers: {"Content-Type": "text/html"}});
 	});
 
-	// Deno.writeFileSync("./dump.html", await page);
-	console.log("hi", page);
 
 }
-// test();
+function writeFile (arr: Uint8Array[])
+{
+	let str = "";
+	console.log("got arr", arr);
+	arr.forEach((intarray) =>
+	{
+		const body = new TextDecoder().decode(intarray);
+		str += body;
+	});
+	Deno.writeTextFileSync("./dump.html", str);
+	console.log("done", str);
+}
+test();
