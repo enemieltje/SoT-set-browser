@@ -1,68 +1,13 @@
+import {readHtmlFromUrl} from "./updateDump.ts";
 
-
-function updateDump ()
+function removeWhitespace (str: string)
 {
-	const arr: Uint8Array[] = [];
-	fetch("https://seaofthieves.fandom.com/wiki/Category:Cosmetic_Set").then((response) =>
-	{
-		const reader = response?.body?.getReader();
-		const stream = new ReadableStream({
-			start (controller)
-			{
-				// The following function handles each data chunk
-				function push ()
-				{
-					// "done" is a Boolean and value a "Uint8Array"
-					return reader?.read().then(({done, value}) =>
-					{
-						console.log(`reader done: ${done}`);
-						// console.log(`value: ${value}`);
-						// Is there no more data to read?
-						if (done)
-						{
-							// Tell the browser that we have finished sending data
-							controller.close();
-							writeDumpFile(arr);
-							return;
-						}
-
-						// Get the data and send it to the browser via the controller
-						if (value)
-							arr.push(value);
-						controller.enqueue(value);
-						push();
-					});
-				};
-
-				push();
-			}
-		});
-
-		return new Response(stream, {headers: {"Content-Type": "text/html"}});
-	});
-
-
+	return str.replace(/[\n\t]+/g, "");
 }
-function writeDumpFile (arr: Uint8Array[])
-{
-	let str = "";
-	console.log("got arr", arr);
-	arr.forEach((intarray) =>
-	{
-		const body = new TextDecoder().decode(intarray);
-		str += body;
-	});
-	Deno.writeTextFileSync("./dump.html", str);
-	console.log("done", str);
-}
-// updateDump();
 
 function getNames (dump: string)
 {
-	// remove whitespaces
-	const findWhitespace = /\s+/g;
-	dump = dump.replace(findWhitespace, "");
-	// console.log(`whitespace dump: ${dump}`);
+	dump = removeWhitespace(dump);
 
 	// seperate into letter catagories
 	const findLetters = new RegExp(`<h3>[A-Z]<\/h3>(<ul>.*?<\/ul>)`, "gm");
@@ -76,12 +21,13 @@ function getNames (dump: string)
 	console.log(`amount of letter cats found: ${perLetterArray.length}`);
 
 	// get the set names of each letter cat
+	const tableArray: string[] = [];
 	let linkArray: RegExpMatchArray = [];
 	let titleArray: RegExpMatchArray = [];
 	perLetterArray.forEach((letterCat) =>
 	{
 		// console.log(letterCat);
-		const findLink = /<li><ahref="(.*?)"/gm;
+		const findLink = /<li>.*?<a href="(.*?)"/gm;
 		const findTitle = /title="(.*?)"/gm;
 		const linkArrayPerLetter = letterCat.match(findLink);
 		const tilteArrayPerLetter = letterCat.match(findTitle);
@@ -100,7 +46,7 @@ function getNames (dump: string)
 	// format links and titles
 	linkArray.forEach((link, i) =>
 	{
-		link = link.slice(12, -1);
+		link = link.slice(13, -1);
 		titleArray[i] = titleArray[i].slice(7, -1);
 		linkArray[i] = `https://seaofthieves.fandom.com/${link}`;
 
@@ -109,42 +55,84 @@ function getNames (dump: string)
 	});
 
 	// construct html page
+	let count = 0;
+	// console.log(`length: ${linkArray.length}`);
+	linkArray.forEach(async (link, i) =>
+	{
+		// console.log(`link: ${link}\ni: ${i}`);
+		const table = await getTable(link);
+		// console.log(`table: ${table}`);
+
+		if (table)
+			tableArray[i] = table;
+		count++;
+		if (count == linkArray.length)
+			constructHtml(tableArray, linkArray, titleArray);
+	});
+
+}
+
+function constructHtml (tableArray: string[], linkArray: string[], titleArray: string[])
+{
 	let index = `<!DOCTYPE html><html><body>`;
-	linkArray.forEach((link, i) =>
+
+	tableArray.forEach((table, i) =>
 	{
 		index += `<a href="${linkArray[i]}">${titleArray[i]}</a><br>`;
-		// 	<img src="https://static.wikia.nocookie.net/seaofthieves_gamepedia/images/a/aa/Admiral_Set_Galleon.png/revision/latest?cb=20200527180851" />
-
+		index += table;
+		index += `<br>`;
 	});
+
+	console.log(`Done! writing to index`);
 	index += `</body></html>`;
 	Deno.writeTextFileSync("./index.html", index);
 }
-getNames(Deno.readTextFileSync("./dump.html"));
-/* getNames(`
-											<div class="mw-category-group">
-												<h3>A</h3>
-												<ul>
-													<li><a href="/wiki/Accomplished_Set"
-															title="Accomplished Set">Accomplished Set</a></li>
-													<li><a href="/wiki/Admiral_Set" title="Admiral Set">Admiral Set</a>
-													</li>
-													<li><a href="/wiki/Affiliate_Alliance_Set"
-															title="Affiliate Alliance Set">Affiliate Alliance Set</a>
-													<
-															title="Azure Ocean Crawler Set">Azure Ocean Crawler Set</a>
-													</li>
-												</ul>
-											</div>
-<div class="mw-category-group">
-												<h3>B</h3>
-												<ul>
-													<li><a href="/wiki/Bear_%26_Bird_Set"
-															title="Bear &amp; Bird Set">Bear &amp; Bird Set</a></li>
-													<li><a href="/wiki/Bedraggled_Castaway_Bilge_Rat_Set"
-															title="Bedraggled Castaway Bilge Rat Set">Bedraggled
-															Castaway Bilge Rat Set</a></li>
-													<li><a href="/wiki/Bell_Brigade_Set" title="Bell Brigade Set">Bell
-															Brigade Set</a></li>
-												</ul>
-											</div>`);
-*/
+
+async function getTable (url: string)
+{
+	let sethtml = await readHtmlFromUrl(url);
+	sethtml = removeWhitespace(sethtml);
+	// Deno.writeTextFileSync("./dump.html", sethtml);
+	const findTable = /<table class="infoboxtable">.*?<\/table>/gm;
+	const tableResults = sethtml.match(findTable);
+	if (!tableResults) return;
+	let table = tableResults[0];
+
+	table = formatTable(table);
+
+	return table;
+}
+
+function formatTable (table: string)
+{
+	// if it has data-src
+	const dataSrcIndex = table.indexOf("data-src");
+	if (dataSrcIndex > 0)
+	{
+		// get link from data-src
+		const imageLink = table.slice(dataSrcIndex + 9).match(/".*?"/gm);
+		if (!imageLink) return table;
+		// console.log(imageLink[0]);
+
+		// substitute src with imageLink
+		const srcIndex = table.indexOf("src");
+		if (srcIndex > 0)
+		{
+			const srcTrash = table.slice(srcIndex + 4).match(/".*?"/gm);
+			if (!srcTrash) return table;
+			table = table.replace(srcTrash[0], imageLink[0]);
+			// console.log(`replaced ${srcTrash[0]} with ${imageLink[0]}`);
+			console.log(table);
+		}
+
+	}
+
+	return table;
+}
+
+const cosmeticSetUrl = "https://seaofthieves.fandom.com/wiki/Category:Cosmetic_Set";
+const cosmeticSetHtml = await readHtmlFromUrl(cosmeticSetUrl);
+getNames(cosmeticSetHtml);
+
+// const im = await getImageFromUrl(`https://seaofthieves.fandom.com/wiki/Mayhem_Set`);
+// console.log(`image: ${im}`);
