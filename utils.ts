@@ -82,27 +82,27 @@ export function formatLink (str: string)
 /**
  * make sure the link that is included is correct
  */
-export function formatTable (table: string)
+export function fixSrc (html: string)
 {
 	// get the value of data-src
-	const dataSrcIndex = table.indexOf("data-src");
+	const dataSrcIndex = html.indexOf("data-src");
 	if (dataSrcIndex > 0)
 	{
-		const imageLink = table.slice(dataSrcIndex + 9).match(/".*?"/gm);
-		if (!imageLink) return table;
+		const imageLink = html.slice(dataSrcIndex + 9).match(/".*?"/gm);
+		if (!imageLink) return html;
 
 		// substitute the value of data-src with the value of src
-		const srcIndex = table.indexOf("src");
+		const srcIndex = html.indexOf("src");
 		if (srcIndex > 0)
 		{
-			const srcTrash = table.slice(srcIndex + 4).match(/".*?"/gm);
-			if (!srcTrash) return table;
-			table = table.replace(srcTrash[0], imageLink[0]);
+			const srcTrash = html.slice(srcIndex + 4).match(/".*?"/gm);
+			if (!srcTrash) return html;
+			html = html.replace(srcTrash[0], imageLink[0]);
 			// console.log(`replaced ${srcTrash[0]} with ${imageLink[0]}`);
-			console.log(table);
+			//console.log(html);
 		}
 	}
-	return table;
+	return html;
 }
 
 /**

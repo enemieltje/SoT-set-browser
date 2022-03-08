@@ -5,7 +5,7 @@ import
 	removeWhitespace,
 	formatLink,
 	formatTitle,
-	formatTable
+	fixSrc
 } from "./utils.ts";
 
 /**
@@ -135,7 +135,7 @@ async function getTable (url: string, regex: RegExp)
 	let table = tableResults[0];
 
 	// format the table
-	table = formatTable(table);
+	table = fixSrc(table);
 
 	return table;
 }
@@ -143,3 +143,5 @@ async function getTable (url: string, regex: RegExp)
 const cosmeticSetUrl = "https://seaofthieves.fandom.com/wiki/Category:Cosmetic_Set";
 const cosmeticSetHtml = await readHtmlFromUrl(cosmeticSetUrl);
 sortCatagories(cosmeticSetHtml);
+// const dump = await readHtmlFromUrl(`https://seaofthieves.fandom.com//wiki/Admiral_Set`);
+// Deno.writeTextFileSync("./dump.html", dump);
