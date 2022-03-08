@@ -1,18 +1,24 @@
-import {readHtmlFromUrl} from "./updateDump.ts";
-
-function removeWhitespace (str: string)
+import
 {
-	return str.replace(/[\n\t]+/g, "");
-}
+	readHtmlFromUrl,
+	SetInfo,
+	removeWhitespace,
+	formatLink,
+	formatTitle,
+	formatTable
+} from "./utils.ts";
 
-function getNames (dump: string)
+/**
+ * get an array of the html bits that are in each letter catagory
+ */
+function sortCatagories (cosmeticSetListHtml: string)
 {
-	dump = removeWhitespace(dump);
+	cosmeticSetListHtml = removeWhitespace(cosmeticSetListHtml);
 
 	// seperate into letter catagories
 	const findLetters = new RegExp(`<h3>[A-Z]<\/h3>(<ul>.*?<\/ul>)`, "gm");
 	// console.log(`flags: ${findLetters.flags}`);
-	const perLetterArray = dump.match(findLetters);
+	const perLetterArray = cosmeticSetListHtml.match(findLetters);
 	if (perLetterArray == null)
 	{
 		console.log(`no letter cats found`);
@@ -20,119 +26,120 @@ function getNames (dump: string)
 	}
 	console.log(`amount of letter cats found: ${perLetterArray.length}`);
 
-	// get the set names of each letter cat
-	const tableArray: string[] = [];
-	let linkArray: RegExpMatchArray = [];
-	let titleArray: RegExpMatchArray = [];
+	getInfo(perLetterArray);
+}
+
+/**
+ * get SetInfo for each set in the list except the tables
+ */
+function getInfo (perLetterArray: RegExpMatchArray)
+{
+	// A record that contains the info for all the sets
+	const cosmeticSetRecord: Record<string, SetInfo> = {};
+
+	// for each html bit that contains all sets starting with the same letter
 	perLetterArray.forEach((letterCat) =>
 	{
-		// console.log(letterCat);
+		// regex to find the link and title
 		const findLink = /<li>.*?<a href="(.*?)"/gm;
 		const findTitle = /title="(.*?)"/gm;
+
+		// arrays that contain the links and titles for all sets with this letter
 		const linkArrayPerLetter = letterCat.match(findLink);
 		const tilteArrayPerLetter = letterCat.match(findTitle);
+
 		if (linkArrayPerLetter == null || tilteArrayPerLetter == null)
 		{
 			console.log(`no links in this letter`);
 			return;
 		}
-		// console.log(`linkArrayPerLetter: ${linkArrayPerLetter}`);
-		linkArray = linkArray.concat(linkArrayPerLetter);
-		titleArray = titleArray.concat(tilteArrayPerLetter);
 
+		// for each set with this letter
+		linkArrayPerLetter.forEach((link, i) =>
+		{
+			// construct SetInfo
+			const tableInfo = {
+				title: formatTitle(tilteArrayPerLetter[i]),
+				link: formatLink(linkArrayPerLetter[i]),
+				table: ""
+			};
+
+			// add the setinfo to the record
+			cosmeticSetRecord[tilteArrayPerLetter[i]] = tableInfo;
+		});
 	});
-	console.log(`amount of links found: ${linkArray.length}`);
-
-	// format links and titles
-	linkArray.forEach((link, i) =>
-	{
-		link = link.slice(13, -1);
-		titleArray[i] = titleArray[i].slice(7, -1);
-		linkArray[i] = `https://seaofthieves.fandom.com/${link}`;
-
-		// console.log(`title: ${titleArray[i]}`);
-		// console.log(`link: ${linkArray[i]}`);
-	});
-
-	// construct html page
-	let count = 0;
-	// console.log(`length: ${linkArray.length}`);
-	linkArray.forEach(async (link, i) =>
-	{
-		// console.log(`link: ${link}\ni: ${i}`);
-		const table = await getTable(link);
-		// console.log(`table: ${table}`);
-
-		if (table)
-			tableArray[i] = table;
-		count++;
-		if (count == linkArray.length)
-			constructHtml(tableArray, linkArray, titleArray);
-	});
-
+	console.log(`amount of links found: ${Object.keys(cosmeticSetRecord).length}`);
+	collectTables(cosmeticSetRecord);
 }
 
-function constructHtml (tableArray: string[], linkArray: string[], titleArray: string[])
+/**
+ * collects all the tables from the original pages
+ * and starts constructing the html page when its done (could also be done with promise)
+ */
+function collectTables (cosmeticSetRecord: Record<string, SetInfo>)
 {
+	// counter to make sure we have done all of them
+	// this is needed because the function is async
+	let count = 0;
+
+	Object.keys(cosmeticSetRecord).forEach(async (key, i) =>
+	{
+		// get the table and write it to the record
+		const table = await getTable(cosmeticSetRecord[key].link, /<table class="infoboxtable">.*?<\/table>/gm);
+		if (table) cosmeticSetRecord[key].table = table;
+
+		// if we are done with all of them we can construct the html
+		count++;
+		if (count == Object.keys(cosmeticSetRecord).length)
+			constructHtml(cosmeticSetRecord);
+	});
+}
+
+/**
+ * constructs a html page with all the info from the setRecord
+ */
+function constructHtml (cosmeticSetRecord: Record<string, SetInfo>)
+{
+	// the beginning of the html page
 	let index = `<!DOCTYPE html><html><body>`;
 
-	tableArray.forEach((table, i) =>
+	// the body of the html page
+	Object.keys(cosmeticSetRecord).forEach((key, i) =>
 	{
-		index += `<a href="${linkArray[i]}">${titleArray[i]}</a><br>`;
-		index += table;
-		index += `<br>`;
+		// link to the original page
+		index += `<a href="${cosmeticSetRecord[key].link}">${cosmeticSetRecord[key].title}</a><br>`;
+		// the table
+		index += cosmeticSetRecord[key].table + `<br>`;
 	});
 
-	console.log(`Done! writing to index`);
+	// the end of the html page
 	index += `</body></html>`;
+
+	// save the file
+	console.log(`Done! writing to index`);
 	Deno.writeTextFileSync("./index.html", index);
 }
 
-async function getTable (url: string)
+/**
+ * finds a table with regex in the html of a supplied url
+ */
+async function getTable (url: string, regex: RegExp)
 {
+	// get the html page
 	let sethtml = await readHtmlFromUrl(url);
 	sethtml = removeWhitespace(sethtml);
-	// Deno.writeTextFileSync("./dump.html", sethtml);
-	const findTable = /<table class="infoboxtable">.*?<\/table>/gm;
-	const tableResults = sethtml.match(findTable);
+
+	// match the regex to find the table
+	const tableResults = sethtml.match(regex);
 	if (!tableResults) return;
 	let table = tableResults[0];
 
+	// format the table
 	table = formatTable(table);
-
-	return table;
-}
-
-function formatTable (table: string)
-{
-	// if it has data-src
-	const dataSrcIndex = table.indexOf("data-src");
-	if (dataSrcIndex > 0)
-	{
-		// get link from data-src
-		const imageLink = table.slice(dataSrcIndex + 9).match(/".*?"/gm);
-		if (!imageLink) return table;
-		// console.log(imageLink[0]);
-
-		// substitute src with imageLink
-		const srcIndex = table.indexOf("src");
-		if (srcIndex > 0)
-		{
-			const srcTrash = table.slice(srcIndex + 4).match(/".*?"/gm);
-			if (!srcTrash) return table;
-			table = table.replace(srcTrash[0], imageLink[0]);
-			// console.log(`replaced ${srcTrash[0]} with ${imageLink[0]}`);
-			console.log(table);
-		}
-
-	}
 
 	return table;
 }
 
 const cosmeticSetUrl = "https://seaofthieves.fandom.com/wiki/Category:Cosmetic_Set";
 const cosmeticSetHtml = await readHtmlFromUrl(cosmeticSetUrl);
-getNames(cosmeticSetHtml);
-
-// const im = await getImageFromUrl(`https://seaofthieves.fandom.com/wiki/Mayhem_Set`);
-// console.log(`image: ${im}`);
+sortCatagories(cosmeticSetHtml);

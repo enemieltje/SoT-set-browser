@@ -1,3 +1,6 @@
+/**
+ * returns a promise of the html content of a page
+ */
 export function readHtmlFromUrl (url: string): Promise<string>
 {
 	return new Promise<string>((resolve, _reject) =>
@@ -47,19 +50,72 @@ export function readHtmlFromUrl (url: string): Promise<string>
 	});
 }
 
+/**
+ * this is all the data that defines a cosmetic set
+ */
+export interface SetInfo
+{
+	title: string;
+	link: string;
+	table: string;
+}
+
+/**
+ * removes tabs and newlines so regex can work with it
+ */
+export function removeWhitespace (str: string)
+{
+	return str.replace(/[\n\t]+/g, "");
+}
+
+export function formatTitle (str: string)
+{
+	return str.slice(7, -1);
+}
+
+export function formatLink (str: string)
+{
+	str = str.slice(13, -1);
+	return `https://seaofthieves.fandom.com/${str}`;
+}
+
+/**
+ * make sure the link that is included is correct
+ */
+export function formatTable (table: string)
+{
+	// get the value of data-src
+	const dataSrcIndex = table.indexOf("data-src");
+	if (dataSrcIndex > 0)
+	{
+		const imageLink = table.slice(dataSrcIndex + 9).match(/".*?"/gm);
+		if (!imageLink) return table;
+
+		// substitute the value of data-src with the value of src
+		const srcIndex = table.indexOf("src");
+		if (srcIndex > 0)
+		{
+			const srcTrash = table.slice(srcIndex + 4).match(/".*?"/gm);
+			if (!srcTrash) return table;
+			table = table.replace(srcTrash[0], imageLink[0]);
+			// console.log(`replaced ${srcTrash[0]} with ${imageLink[0]}`);
+			console.log(table);
+		}
+	}
+	return table;
+}
+
+/**
+ * decode an array of Uint8Arrays into a single string
+ */
 function decodeUintarr (arr: Uint8Array[])
 {
 	let str = "";
-	// console.log("got arr", arr);
 	arr.forEach((intarray) =>
 	{
 		const body = new TextDecoder().decode(intarray);
 		str += body;
 	});
 
-	// console.log("done", str.length);
 	return str;
 }
-// const str = updateDump("https://seaofthieves.fandom.com/wiki/Category:Cosmetic_Set");
-
-// console.log("done", await str);
