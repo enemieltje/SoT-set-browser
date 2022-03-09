@@ -58,13 +58,11 @@ function hasItems(data: SetData): boolean {
 
 function formatSetData (setData: SetData)
 {
-	//console.log("hi");
 
 	setData = caltotalcoin(setData);
-	//TODO:add collapse button
-	let body = `<button type="button" class="collapsiblemain">v</button>
-	<div id="${setData.name.replace("/\ /gi", "")}" class="set">
- 		<a class="name" href="${setData.relink}">${setData.name}</a>`;
+	let body = `<button type="button" class="name collapsiblemain">${setData.name}</button>
+	<div id="${setData.name.replace("/\ /gi", "")}" class="set">`
+
 
 	body += formatCost(setData);
 
@@ -73,6 +71,7 @@ function formatSetData (setData: SetData)
 	if (setData.weapons[0]) body += formatItemList(setData.weapons, "weapons");
 	if (setData.vanity[0]) body += formatItemList(setData.vanity, "vanity");
 	if (setData.equipment[0]) body += formatItemList(setData.equipment, "equipment");
+	body += `<a class="wiki" href="${setData.relink}">wiki</a>`;
 	body += "</div>";
 	return body;
 }
@@ -96,9 +95,7 @@ function formatItem (data: Item)
 }
 function formatItemList (data: Array<Item>, type: string)
 {
-	let body = "";
-	//TODO: add collapse button
-	body += `<button type="button" class="collapsible">${type}</button>
+	let body = `<button type="button" class="collapsible">${type}</button>
 	<div class="imglist ${type}">`;
 	for (let i = 0; i < data.length; i++)
 	{
