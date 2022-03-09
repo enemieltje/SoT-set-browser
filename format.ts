@@ -21,38 +21,48 @@ export interface Item extends Cost
 	img: string;
 }
 
-const goldCoinImg = "";
-const ancientCoinImg = "";
-const doubloonsCoinImg = "";
+const goldCoinImg = `<img src="https://static.wikia.nocookie.net/seaofthieves_gamepedia/images/1/10/Gold.png/revision/latest/scale-to-width-down/16?cb=20190907200721">`;
+const ancientCoinImg = "b";
+const doubloonsCoinImg = `<img src="https://static.wikia.nocookie.net/seaofthieves_gamepedia/images/6/65/Doubloon.png/revision/latest/scale-to-width-down/16?cb=20190907201215">`;
 
 export function formatHtml (data: SetData[])
 {
 	const title = "sot set list";
-	let body = `<html lang="en"><head>
+	let body = `<!DOCTYPE html><html lang="en"><head>
 	<meta charset="UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" href="style.css">
+	<script src="script.js" defer></script> 
+	
 	<title>${title}</title></head><body>`;
 
 
 	for (let i = 0; i < data.length; i++)
 	{
-		body += formatSetData(data[i]);
+		const setData = data[i];
+		if (setData && hasItems(setData))
+			body += formatSetData(setData);
 	}
 	body += `</body></html>`;
+	console.log("job done");
 
 	return body;
 }
 
+function hasItems(data: SetData): boolean {
+	const count = data.ship.length + data.weapons.length +
+		data.vanity.length + data.equipment.length + data.clothing.length;
+	return count != 0;
+}
+
 function formatSetData (setData: SetData)
 {
-	console.log("hi");
 
 	setData = caltotalcoin(setData);
-	//TODO:add collapse button
-	let body = `<div id="${setData.name.replaceAll(" ", "")}" class="set">
- 		<a class="name" href="${setData.relink}">${setData.name}</a>`;
+	let body = `<button type="button" class="name collapsiblemain">${setData.name}</button>
+	<div id="${setData.name.replace("/\ /gi", "")}" class="set">`
+
 
 	body += formatCost(setData);
 
@@ -61,6 +71,7 @@ function formatSetData (setData: SetData)
 	if (setData.weapons[0]) body += formatItemList(setData.weapons, "weapons");
 	if (setData.vanity[0]) body += formatItemList(setData.vanity, "vanity");
 	if (setData.equipment[0]) body += formatItemList(setData.equipment, "equipment");
+	body += `<a class="wiki" href="${setData.relink}">wiki</a>`;
 	body += "</div>";
 	return body;
 }
@@ -77,16 +88,15 @@ function formatItem (data: Item)
 {
 	let body = `<div class="item ${data.type}">`;
 	body += `<p class="name">${data.name}</p>`;
+	body += `<img src=${data.img} loading="lazy">`;
 	body += formatCost(data);
-	body += `<img src=${data.img}`;
 	body += "</div>";
 	return body;
 }
 function formatItemList (data: Array<Item>, type: string)
 {
-	let body = "";
-	//TODO: add collapse button
-	body += `<div class="imglist ${type}">`;
+	let body = `<button type="button" class="collapsible">${type}</button>
+	<div class="imglist ${type}">`;
 	for (let i = 0; i < data.length; i++)
 	{
 		body += formatItem(data[i]);
