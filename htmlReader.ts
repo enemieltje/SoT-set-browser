@@ -229,12 +229,22 @@ function getDataFromRows (row: string, type: string)
 			coinsResults.forEach((coin) =>
 			{
 				const valueStart = coin.indexOf(">");
-				const valueEnd = coin.indexOf("&");
+				const valueEndOne = coin.indexOf("&");
+				const valueEndTwo = coin.indexOf("<");
+				const valueEnd = valueEndOne < valueEndTwo ? valueEndOne : valueEndTwo;
 				const value = coin.slice(valueStart + 1, valueEnd).replaceAll(",", "");
 
 				if (coin.includes("Gold"))
 				{
 					item.goldCoin = Number.parseInt(value);
+				}
+				if (coin.includes("Doubloons"))
+				{
+					item.doubloonsCoin = Number.parseInt(value);
+				}
+				if (coin.includes("Ancient_Coins"))
+				{
+					item.ancientCoin = Number.parseInt(value);
 				}
 			});
 	}

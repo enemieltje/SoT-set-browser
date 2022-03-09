@@ -22,7 +22,7 @@ export interface Item extends Cost
 }
 
 const goldCoinImg = `<img src="https://static.wikia.nocookie.net/seaofthieves_gamepedia/images/1/10/Gold.png/revision/latest/scale-to-width-down/16?cb=20190907200721">`;
-const ancientCoinImg = "b";
+const ancientCoinImg = " €";
 const doubloonsCoinImg = `<img src="https://static.wikia.nocookie.net/seaofthieves_gamepedia/images/6/65/Doubloon.png/revision/latest/scale-to-width-down/16?cb=20190907201215">`;
 
 export function formatHtml (data: SetData[])
@@ -33,8 +33,8 @@ export function formatHtml (data: SetData[])
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<link rel="stylesheet" href="style.css">
-	<script src="script.js" defer></script> 
-	
+	<script src="script.js" defer></script>
+
 	<title>${title}</title></head><body>`;
 
 
@@ -50,7 +50,8 @@ export function formatHtml (data: SetData[])
 	return body;
 }
 
-function hasItems(data: SetData): boolean {
+function hasItems (data: SetData): boolean
+{
 	const count = data.ship.length + data.weapons.length +
 		data.vanity.length + data.equipment.length + data.clothing.length;
 	return count != 0;
@@ -61,7 +62,7 @@ function formatSetData (setData: SetData)
 
 	setData = caltotalcoin(setData);
 	let body = `<button type="button" class="name collapsiblemain">${setData.name}</button>
-	<div id="${setData.name.replace("/\ /gi", "")}" class="set">`
+	<div id="${setData.name.replace("/\ /gi", "")}" class="set">`;
 
 
 	body += formatCost(setData);

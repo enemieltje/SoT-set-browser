@@ -1,7 +1,7 @@
 * {
 	margin: 0;
 	padding: 0;
-	
+
 }
 
 body{
@@ -13,7 +13,7 @@ body{
 	background: #333;
 	border-bottom-style: solid;
 	display: block;
-	
+
 }
 
 .name {
@@ -23,6 +23,16 @@ body{
 }
 
 .cost {
+	margin: 1px;
+	color: white;
+}
+
+.costAncient {
+	margin: 1px;
+	color: white;
+}
+
+.costdoubloons {
 	margin: 1px;
 	color: white;
 }
@@ -38,7 +48,7 @@ body{
 
 .imglist{
 	display: flex;
-	
+
 }
 button{
 	background: none;
@@ -46,10 +56,10 @@ button{
 	display: block;
 }
 .collapsible{
-	
+
 	color: #aaa;
 }
 .wiki{
 	color: lightblue;
-	
+
 }
